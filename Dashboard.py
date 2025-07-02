@@ -48,7 +48,26 @@ if not st.session_state['data_uploaded']:
     st.stop()
 
 
+# Dashboard
+df = st.session_state['data']
+st.markdown("<h1 style='text-align:center;'> Leading Causes of Death Dashboard using ARIMA</h1>", unsafe_allow_html=True)
+st.markdown("<hr style='margin-top: 20px; margin-bottom: 20px;'>", unsafe_allow_html=True)
 
+# Sidebar
+st.sidebar.title("Historical Data Filter")
+state_options = ["All States"] + sorted(df['State'].unique())
+year_options = sorted(df['Year'].unique())
+
+selected_state = st.sidebar.selectbox("State", state_options)
+selected_year = st.sidebar.selectbox("Year", year_options)
+top_option = st.sidebar.radio("Causes to Display (Bar Chart)", ["Top 3 Causes", "All Causes"])
+
+# Filters
+filtered_df = df.copy()
+if selected_state != "All States":
+    filtered_df = filtered_df[filtered_df['State'] == selected_state]
+filtered_df = filtered_df[filtered_df['Year'] == selected_year]
+filtered_df = filtered_df[filtered_df['Cause Name'].str.lower() != "all causes"]
 
 
 
