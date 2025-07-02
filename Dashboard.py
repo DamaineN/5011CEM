@@ -68,4 +68,20 @@ with col1:
     st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
     st.download_button("Download Filtered Data as CSV", csv, file_name="filtered_dataset.csv", mime="text/csv")
 
+with col2:
+    st.markdown("<h3 style='font-weight: bold; font-size: 24px;'>Death by Cause (Bar Chart)</h3>", unsafe_allow_html=True)
 
+    fig = px.bar(
+        summary,
+        x="Deaths",
+        y="Cause Name",
+        text="Label",
+        orientation="h",
+        color="Cause Name",  # Add this line
+        title=f"{top_option} in {selected_state}, {selected_year}<br>Total Deaths: {total_deaths:,}",
+        labels={"Deaths": "Number of Deaths", "Cause Name": "Cause"},
+        height=500
+    )
+    fig.update_traces(textposition="outside", marker_line_width=0)
+    fig.update_layout(yaxis_title=None, showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
