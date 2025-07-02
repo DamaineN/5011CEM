@@ -214,3 +214,35 @@ if st.sidebar.button("Run Forecast"):
             )
             fig_all.update_layout(xaxis=dict(dtick=1))
             st.plotly_chart(fig_all, use_container_width=True)
+
+# To track if new file has been processed
+if 'new_file_processed' not in st.session_state:
+    st.session_state['new_file_processed'] = False
+
+st.sidebar.markdown("---")
+st.sidebar.title("Upload New Dataset (CSV)")
+new_file = st.sidebar.file_uploader("", type=["csv"], key="new_file")
+
+if new_file and not st.session_state['new_file_processed']:
+    try:
+        df_new = pd.read_csv(new_file)
+        required_cols = {"Year", "Cause Name", "State", "Deaths"}
+        if not required_cols.issubset(df_new.columns):
+            st.sidebar.error("Missing required columns.")
+        else:
+            df_new = df_new[~df_new['State'].isin(['United States', 'District of Columbia'])]
+            if 'Age-adjusted Death Rate' in df_new.columns:
+                df_new.drop(columns=['Age-adjusted Death Rate'], inplace=True)
+            df_new.columns = [col.strip().title().replace("-", " ") for col in df_new.columns]
+
+            st.session_state['data'] = df_new
+            st.session_state['new_file_processed'] = True  # Set flag to avoid loop
+            st.sidebar.success("Dataset updated!")
+            st.rerun()
+    except Exception as e:
+        st.sidebar.error(f"Upload error: {e}")
+
+# Reset if the user removes the file
+if not new_file:
+    st.session_state['new_file_processed'] = False
+
