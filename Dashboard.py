@@ -16,6 +16,37 @@ if 'data_uploaded' not in st.session_state:
 if 'data' not in st.session_state:
     st.session_state['data'] = None
 
+# Upload Dataset
+if not st.session_state['data_uploaded']:
+    st.markdown("<h1 style='text-align:center;'>📤 Upload Your CSV Dataset</h1>", unsafe_allow_html=True)
+    st.markdown("""
+        <div style='text-align:center; font-size:18px; color:#555;'>
+        Please upload a valid CSV with columns like <code>Year</code>, <code>Cause Name</code>, <code>State</code>, <code>Deaths</code>.
+        </div><br><br>
+    """, unsafe_allow_html=True)
+
+    uploaded_file = st.file_uploader("", type=["csv"])
+
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            required_cols = {"Year", "Cause Name", "State", "Deaths"}
+            if not required_cols.issubset(df.columns):
+                st.error("The CSV is missing one or more required columns.")
+            else:
+                df = df[~df['State'].isin(['United States', 'District of Columbia'])]
+                if 'Age-adjusted Death Rate' in df.columns:
+                    df.drop(columns=['Age-adjusted Death Rate'], inplace=True)
+                df.columns = [col.strip().title().replace("-", " ") for col in df.columns]
+
+                st.session_state['data'] = df
+                st.session_state['data_uploaded'] = True
+                st.success("Upload successful! Redirecting to dashboard...")
+                st.rerun()
+        except Exception as e:
+            st.error(f"Failed to read file: {e}")
+    st.stop()
+
 
 
 
