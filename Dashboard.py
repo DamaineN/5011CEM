@@ -52,7 +52,6 @@ if not st.session_state['data_uploaded']:
 
 
 
-# Khisshore
 # Summary for Chart
 summary = (
     filtered_df.groupby("Cause Name")["Deaths"]
@@ -116,3 +115,83 @@ with col2:
     fig.update_traces(textposition="outside", marker_line_width=0)
     fig.update_layout(yaxis_title=None, showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
+
+# Forecasting
+st.sidebar.markdown("---")
+st.sidebar.title("Prediction of Causes")
+predict_state = st.sidebar.selectbox("Forecast for State", sorted(df['State'].unique()))
+years_ahead = st.sidebar.selectbox("Years to Predict (after 2017)", [1, 2, 3, 5, 10])
+show_all_toggle = st.sidebar.checkbox("Show all causes (line chart)", value=False)
+
+if st.sidebar.button("Run Forecast"):
+    with st.spinner("Running ARIMA models, please wait..."):
+        df_pred = df.copy()
+        df_pred = df_pred[df_pred['Cause Name'].str.lower() != "all causes"]
+        df_pred = df_pred[df_pred['Year'] <= 2017]
+
+        future_years = list(range(2018, 2018 + years_ahead))
+        predictions = []
+        causes = df_pred['Cause Name'].unique()
+        skipped_causes = []
+        progress = st.progress(0)
+
+        for i, cause in enumerate(causes):
+            sub_df = df_pred[(df_pred['State'] == predict_state) & (df_pred['Cause Name'] == cause)].sort_values('Year')
+            if len(sub_df) < 3:
+                skipped_causes.append(cause)
+                progress.progress((i + 1) / len(causes))
+                continue
+
+            try:
+                model = auto_arima(sub_df['Deaths'], seasonal=False, suppress_warnings=True, error_action="ignore")
+                forecast = model.predict(n_periods=years_ahead)
+                forecast_values = forecast.values if hasattr(forecast, "values") else forecast
+
+                for j, year in enumerate(future_years):
+                    predictions.append({
+                        'Year': year,
+                        'State': predict_state,
+                        'Cause Name': cause,
+                        'Predicted Deaths': max(0, round(forecast_values[j]))
+                    })
+            except Exception as e:
+                skipped_causes.append(cause)
+            progress.progress((i + 1) / len(causes))
+
+    st.success("Forecasting complete!")
+    if skipped_causes:
+        st.warning(f" Skipped {len(skipped_causes)} causes due to insufficient data or model failure.")
+        st.warning(f" Skipped {len(skipped_causes)} causes due to insufficient data or model failure.")
+
+    pred_df = pd.DataFrame(predictions)
+
+    if pred_df.empty:
+        st.error("No predictions available.")
+    else:
+        idx = pred_df.groupby('Year')['Predicted Deaths'].idxmax()
+        top_causes = pred_df.loc[idx].reset_index(drop=True)
+
+        st.subheader(f"Top Predicted Causes in {predict_state}")
+        fig_forecast = px.bar(
+            top_causes,
+            x="Year",
+            y="Predicted Deaths",
+            color="Cause Name",
+            title=f"Top Predicted Causes in {predict_state}",
+            height=500
+        )
+        st.plotly_chart(fig_forecast, use_container_width=True)
+
+        if show_all_toggle:
+            st.subheader(f"All Predicted Causes in {predict_state}")
+            fig_all = px.line(
+                pred_df,
+                x="Year",
+                y="Predicted Deaths",
+                color="Cause Name",
+                markers=True,
+                title="Predicted Deaths by Cause",
+                height=600
+            )
+            fig_all.update_layout(xaxis=dict(dtick=1))
+            st.plotly_chart(fig_all, use_container_width=True)
