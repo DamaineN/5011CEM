@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 st.set_page_config(page_title="Leading Causes of Death Dashboard", layout="wide")
 
-# Session Initialization
+# Session initialization
 if 'data_uploaded' not in st.session_state:
     st.session_state['data_uploaded'] = False
 if 'data' not in st.session_state:
@@ -47,7 +47,6 @@ if not st.session_state['data_uploaded']:
             st.error(f"Failed to read file: {e}")
     st.stop()
 
-
 # Dashboard
 df = st.session_state['data']
 st.markdown("<h1 style='text-align:center;'> Leading Causes of Death Dashboard using ARIMA</h1>", unsafe_allow_html=True)
@@ -69,8 +68,6 @@ if selected_state != "All States":
 filtered_df = filtered_df[filtered_df['Year'] == selected_year]
 filtered_df = filtered_df[filtered_df['Cause Name'].str.lower() != "all causes"]
 
-
-
 # Summary for Chart
 summary = (
     filtered_df.groupby("Cause Name")["Deaths"]
@@ -87,7 +84,7 @@ summary["Percentage"] = (summary["Deaths"] / total_deaths * 100).round(2)
 summary["Label"] = summary.apply(lambda row: f"{row['Deaths']:,} ({row['Percentage']}%)", axis=1)
 summary["Cause Name"] = summary["Cause Name"].apply(lambda x: "<br>".join(x.split(" ")))
 
-# Side-by-Side Layout
+# Side-by-side layout
 col1, col2 = st.columns([1, 1])
 
 with col1:
@@ -135,7 +132,7 @@ with col2:
     fig.update_layout(yaxis_title=None, showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 
-# Forecasting
+# Forecasting with ARIMA model
 st.sidebar.markdown("---")
 st.sidebar.title("Prediction of Causes")
 predict_state = st.sidebar.selectbox("Forecast for State", sorted(df['State'].unique()))
@@ -245,4 +242,4 @@ if new_file and not st.session_state['new_file_processed']:
 # Reset if the user removes the file
 if not new_file:
     st.session_state['new_file_processed'] = False
-
+    
